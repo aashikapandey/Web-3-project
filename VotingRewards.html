@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voting Rewards</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.umd.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .container { max-width: 400px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 10px; }
+        .button { padding: 10px 20px; margin: 5px; cursor: pointer; border: none; background-color: #007bff; color: white; border-radius: 5px; }
+        .button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Voting System</h2>
+        <p id="account">Not connected</p>
+        <button class="button" onclick="connectWallet()">Connect Wallet</button>
+        <h3>Candidates</h3>
+        <div id="candidates"></div>
+        <h3>Your Reward: <span id="reward">0</span> Tokens</h3>
+    </div>
+
+    <script>
+        const contractAddress = "0x2E82a14E6fcFF8047AB1509531581444De4E2b0C";
+        const abi = [
+            "function vote(uint8 candidateIndex) public",
+            "function getVotes(string memory candidate) public view returns (uint256)",
+            "function rewards(address) public view returns (uint256)"
+        ];
+        
+        let candidates = ["Alice", "Bob", "Charlie"];
+        let provider, signer, contract;
+        
+        async function connectWallet() {
+            if (window.ethereum) {
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                contract = new ethers.Contract(contractAddress, abi, signer);
+                
+                try {
+                    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+                    document.getElementById("account").innerText = `Connected: ${accounts[0]}`;
+                    loadVotes();
+                    loadReward(accounts[0]);
+                } catch (error) {
+                    console.error("Connection failed", error);
+                }
+            } else {
+                alert("Please install MetaMask");
+            }
+        }
+
+        async function vote(index) {
+            try {
+                const tx = await contract.vote(index);
+                await tx.wait();
+                alert("Vote casted successfully!");
+                loadVotes();
+                loadReward(await signer.getAddress());
+            } catch (error) {
+                alert("Voting failed: " + error.message);
+            }
+        }
+
+        async function loadVotes() {
+            let candidatesDiv = document.getElementById("candidates");
+            candidatesDiv.innerHTML = "";
+            for (let i = 0; i < candidates.length; i++) {
+                let votes = await contract.getVotes(candidates[i]);
+                candidatesDiv.innerHTML += `<p>${candidates[i]}: ${votes} votes <button class='button' onclick='vote(${i})'>Vote</button></p>`;
+            }
+        }
+
+        async function loadReward(user) {
+            let reward = await contract.rewards(user);
+            document.getElementById("reward").innerText = ethers.utils.formatUnits(reward, "wei");
+        }
+    </script>
+</body>
+</html>
