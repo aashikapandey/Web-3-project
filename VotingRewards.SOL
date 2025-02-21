@@ -1,1 +1,24 @@
+pragma solidity ^0.8.0;
+
+contract VotingRewards {
+    mapping(address => bool) public hasVoted;
+    mapping(string => uint256) public votes;
+    mapping(address => uint256) public rewards;
+    
+    string[3] public candidates = ["Alice", "Bob", "Charlie"];
+    uint256 public rewardAmount = 10;
+    
+    function vote(uint8 candidateIndex) public {
+        require(candidateIndex < candidates.length, "Invalid candidate");
+        require(!hasVoted[msg.sender], "Already voted");
+        
+        hasVoted[msg.sender] = true;
+        votes[candidates[candidateIndex]] += 1;
+        rewards[msg.sender] += rewardAmount;
+    }
+    
+    function getVotes(string memory candidate) public view returns (uint256) {
+        return votes[candidate];
+    }
+}
 
